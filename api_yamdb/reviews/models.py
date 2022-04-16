@@ -1,3 +1,4 @@
+from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 from .validators import year_validator
@@ -86,3 +87,46 @@ class GenreTitle(models.Model):
 
     def __str__(self):
         return f'У произведения {self.title} следующие жанры: {self.genre}'
+
+
+class User(AbstractUser):
+    ADMIN = 'admin'
+    MODERATOR = 'moderator'
+    USER = 'user'
+    ROLES = [
+        (ADMIN, 'admin'),
+        (MODERATOR, 'moderator'),
+        (USER, 'user'),
+    ]
+
+    email = models.EmailField(
+        verbose_name='E-mail',
+        unique=True,
+    )
+    username = models.CharField(
+        verbose_name='Имя пользователя',
+        max_length=150,
+        null=True,
+        unique=True
+    )
+    role = models.CharField(
+        verbose_name='Роль',
+        max_length=50,
+        choices=ROLES,
+        default=USER
+    )
+    bio = models.TextField(
+        verbose_name='Биография',
+        null=True,
+        blank=True
+    )
+
+    def is_moderator(self):
+        return self.role == self.MODERATOR
+
+    def is_admin(self):
+        return self.role == self.ADMIN
+
+    class Meta:
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
