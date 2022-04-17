@@ -1,7 +1,97 @@
+from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.tokens import default_token_generator
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
-from .validators import year_validator
+from .validators import year_validator, username_validator
+
+USER = 'user'
+ADMIN = 'admin'
+MODERATOR = 'moderator'
+
+ROLES = [
+    (USER, USER),
+    (ADMIN, ADMIN),
+    (MODERATOR, MODERATOR),
+]
+
+
+class User(AbstractUser):
+    email = models.EmailField(
+        max_length=254,
+        unique=True,
+        blank=False,
+        null=False
+    )
+    username = models.CharField(
+        validators=(username_validator,),
+        verbose_name='Логин',
+        max_length=150,
+        unique=True,
+        blank=False,
+        null=False
+    )
+    role = models.CharField(
+        verbose_name='Роль',
+        max_length=50,
+        choices=ROLES,
+        default=USER,
+        blank=True
+    )
+    bio = models.TextField(
+        verbose_name='Биография',
+        null=True,
+        blank=True
+    )
+    first_name = models.CharField(
+        verbose_name='Имя',
+        max_length=150,
+        blank=True
+    )
+    last_name = models.CharField(
+        verbose_name='Фамилия',
+        max_length=150,
+        blank=True
+    )
+    confirmation_code = models.CharField(
+        verbose_name='Код подтверждения',
+        max_length=255,
+        null=True,
+        blank=False,
+        default='дефолтный_код'
+    )
+
+    @property
+    def is_user(self):
+        return self.role == USER
+
+    @property
+    def is_moderator(self):
+        return self.role == MODERATOR
+
+    @property
+    def is_admin(self):
+        return self.role == ADMIN
+
+    class Meta:
+        ordering = ('id',)
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
+
+    def __str__(self):
+        return self.username
+
+
+@receiver(post_save, sender=User)
+def post_save(sender, instance, created, **kwargs):
+    if created:
+        confirmation_code = default_token_generator.make_token(
+            instance
+        )
+        instance.confirmation_code = confirmation_code
+        instance.save()
 
 
 class Category(models.Model):
@@ -21,11 +111,14 @@ class Category(models.Model):
         verbose_name_plural = 'Категории'
 
     def __str__(self):
-        return self.name[:20]
+        return self.name
 
 
 class Genre(models.Model):
-    name = models.CharField(max_length=256, verbose_name='Название жанра')
+    name = models.CharField(
+        max_length=256,
+        verbose_name='Название жанра'
+    )
     slug = models.SlugField(
         max_length=50,
         unique=True,
@@ -38,12 +131,12 @@ class Genre(models.Model):
         verbose_name_plural = 'Жанры'
 
     def __str__(self):
-        return self.name[:20]
+        return self.name
 
 
 class Title(models.Model):
     name = models.CharField(
-        max_length=256,
+        max_length=200,
         verbose_name='Название произведения'
     )
     year = models.IntegerField(
@@ -52,21 +145,24 @@ class Title(models.Model):
     )
     rating = models.IntegerField(
         verbose_name='Рейтинг',
-        default=0,
+        default=None,
         null=True,
     )
     description = models.CharField(
         max_length=512,
-        verbose_name='Описание произведения'
+        verbose_name='Описание произведения',
+        null=True,
+        blank=True
     )
     genre = models.ManyToManyField(
         Genre,
-        through='GenreTitle',
+        related_name='titles',
         verbose_name='Жанр',
     )
     category = models.ForeignKey(
         Category,
         null=True,
+        blank=True,
         on_delete=models.SET_NULL,
         related_name='titles',
         verbose_name='Категория',
@@ -78,15 +174,7 @@ class Title(models.Model):
         verbose_name_plural = 'Произведения'
 
     def __str__(self):
-        return self.name[:20]
-
-
-class GenreTitle(models.Model):
-    genre = models.ForeignKey(Genre, null=True, on_delete=models.SET_NULL)
-    title = models.ForeignKey(Title, on_delete=models.CASCADE)
-
-    def __str__(self):
-        return f'У произведения {self.title} следующие жанры: {self.genre}'
+        return self.name
 
 
 class Review(models.Model):
