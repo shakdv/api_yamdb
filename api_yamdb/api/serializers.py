@@ -1,7 +1,8 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 
-from reviews.models import Comment, Review, Category, Genre, Title
+from reviews.models import Comment, Review, Category, Genre, Title, User
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -33,8 +34,24 @@ class TitleSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        fields = "__all__"
         model = Title
+        fields = (
+            'id', 'name', 'year', 'rating', 'description', 'genre', 'category'
+        )
+
+
+class TitleReadOnlySerializer(serializers.ModelSerializer):
+    rating = serializers.IntegerField(
+        source='reviews__score__avg', read_only=True
+    )
+    genre = GenreSerializer(many=True, required=True)
+    category = CategorySerializer(required=True)
+
+    class Meta:
+        model = Title
+        fields = (
+            'id', 'name', 'year', 'rating', 'description', 'genre', 'category'
+        )
 
 
 class ReviewSerializer(serializers.ModelSerializer):
@@ -84,3 +101,49 @@ class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         fields = '__all__'
         model = Comment
+
+
+class UserSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(
+        validators=[UniqueValidator(queryset=User.objects.all())],
+        required=True,
+    )
+    email = serializers.EmailField(
+        validators=[UniqueValidator(queryset=User.objects.all())]
+    )
+
+    class Meta:
+        fields = ('username', 'email', 'first_name',
+                  'last_name', 'bio', 'role')
+        model = User
+
+
+class GetTokenSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    confirmation_code = serializers.CharField()
+
+
+class UserRegisterSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(
+        validators=[UniqueValidator(queryset=User.objects.all())]
+    )
+    email = serializers.EmailField(
+        validators=[UniqueValidator(queryset=User.objects.all())]
+    )
+
+    def validate_username(self, value):
+        if value.lower() == "me":
+            raise serializers.ValidationError("Имя 'me' зарезервиравано")
+        return value
+
+    class Meta:
+        fields = ('username', 'email')
+        model = User
+
+
+class UserPatchSerializer(serializers.ModelSerializer):
+    class Meta:
+        fields = ("username", "email", "first_name",
+                  "last_name", "bio", "role")
+        model = User
+        read_only_fields = ('role',)

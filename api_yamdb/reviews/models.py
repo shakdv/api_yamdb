@@ -1,7 +1,53 @@
+from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 from .validators import year_validator
+
+
+class User(AbstractUser):
+    ADMIN = 'admin'
+    MODERATOR = 'moderator'
+    USER = 'user'
+    ROLES = [
+        (ADMIN, 'admin'),
+        (MODERATOR, 'moderator'),
+        (USER, 'user'),
+    ]
+
+    email = models.EmailField(
+        verbose_name='E-mail',
+        unique=True,
+    )
+    username = models.CharField(
+        verbose_name='Имя пользователя',
+        max_length=150,
+        null=True,
+        unique=True
+    )
+    role = models.CharField(
+        verbose_name='Роль',
+        max_length=50,
+        choices=ROLES,
+        default=USER
+    )
+    bio = models.TextField(
+        verbose_name='Биография',
+        null=True,
+        blank=True
+    )
+
+    @property
+    def is_moderator(self):
+        return self.role == self.MODERATOR
+
+    @property
+    def is_admin(self):
+        return self.role == self.ADMIN
+
+    class Meta:
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
 
 
 class Category(models.Model):
@@ -21,7 +67,7 @@ class Category(models.Model):
         verbose_name_plural = 'Категории'
 
     def __str__(self):
-        return self.name[:20]
+        return self.name
 
 
 class Genre(models.Model):
@@ -38,12 +84,12 @@ class Genre(models.Model):
         verbose_name_plural = 'Жанры'
 
     def __str__(self):
-        return self.name[:20]
+        return self.name
 
 
 class Title(models.Model):
     name = models.CharField(
-        max_length=256,
+        max_length=200,
         verbose_name='Название произведения'
     )
     year = models.IntegerField(
@@ -52,11 +98,12 @@ class Title(models.Model):
     )
     rating = models.IntegerField(
         verbose_name='Рейтинг',
-        default=0,
+        default=None,
         null=True,
     )
-    description = models.CharField(
-        max_length=512,
+    description = models.TextField(
+        null=True,
+        blank=True,
         verbose_name='Описание произведения'
     )
     genre = models.ManyToManyField(
@@ -78,11 +125,11 @@ class Title(models.Model):
         verbose_name_plural = 'Произведения'
 
     def __str__(self):
-        return self.name[:20]
+        return self.name
 
 
 class GenreTitle(models.Model):
-    genre = models.ForeignKey(Genre, null=True, on_delete=models.SET_NULL)
+    genre = models.ForeignKey(Genre, on_delete=models.CASCADE)
     title = models.ForeignKey(Title, on_delete=models.CASCADE)
 
     def __str__(self):
