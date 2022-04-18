@@ -1,6 +1,7 @@
 from django.core.mail import EmailMessage
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
+from django.contrib.auth.tokens import default_token_generator
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
@@ -16,41 +17,72 @@ from .permissions import (AdminModeratorAuthorPermission, AdminOnly,
                           IsAdminUserOrReadOnly)
 from .serializers import (CategorySerializer, CommentSerializer,
                           GenreSerializer, GetTokenSerializer,
-                          NotAdminSerializer, ReviewSerializer,
-                          SignUpSerializer, TitleSerializer,
-                          TitleReadOnlySerializer, UserSerializer)
+                          ReviewSerializer, SignUpSerializer,
+                          TitleSerializer, TitleReadOnlySerializer,
+                          UserSerializer)
 
+
+# class UserViewSet(viewsets.ModelViewSet):
+#     queryset = User.objects.all()
+#     serializer_class = UserSerializer
+#     permission_classes = (permissions.IsAuthenticated, AdminOnly,)
+#     lookup_field = 'username'
+#     filter_backends = (SearchFilter,)
+#     search_fields = ('username',)
+#
+#     @action(
+#         methods=['GET', 'PATCH'],
+#         detail=False,
+#         permission_classes=(permissions.IsAuthenticated,),
+#         url_path='me')
+#     def get_current_user_info(self, request):
+#         serializer = UserSerializer(request.user)
+#         if request.method == 'PATCH':
+#             if request.user.is_admin:
+#                 serializer = UserSerializer(
+#                     request.user,
+#                     data=request.data,
+#                     partial=True)
+#             else:
+#                 serializer = NotAdminSerializer(
+#                     request.user,
+#                     data=request.data,
+#                     partial=True)
+#             serializer.is_valid(raise_exception=True)
+#             serializer.save()
+#             return Response(serializer.data, status=status.HTTP_200_OK)
+#         return Response(serializer.data)
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = (permissions.IsAuthenticated, AdminOnly,)
-    lookup_field = 'username'
     filter_backends = (SearchFilter,)
     search_fields = ('username',)
+    lookup_field = 'username'
+    permission_classes = (permissions.IsAuthenticated, AdminOnly,)
 
     @action(
-        methods=['GET', 'PATCH'],
+        url_path='me',
+        methods=['get'],
         detail=False,
-        permission_classes=(permissions.IsAuthenticated,),
-        url_path='me')
+        permission_classes=(permissions.IsAuthenticated,)
+    )
     def get_current_user_info(self, request):
-        serializer = UserSerializer(request.user)
-        if request.method == 'PATCH':
-            if request.user.is_admin:
-                serializer = UserSerializer(
-                    request.user,
-                    data=request.data,
-                    partial=True)
-            else:
-                serializer = NotAdminSerializer(
-                    request.user,
-                    data=request.data,
-                    partial=True)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.data)
+        user = request.user
+        serializer = UserSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @get_current_user_info.mapping.patch
+    def update_current_user_info(self, request):
+        serializer = UserSerializer(
+            request.user,
+            data=request.data,
+            partial=True,
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class APIGetToken(APIView):

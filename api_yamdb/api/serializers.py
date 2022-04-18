@@ -7,21 +7,38 @@ from reviews.models import Category, Comment, Genre, Review, Title, User
 from reviews.validators import year_validator
 
 
+# class UserSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = User
+#         fields = (
+#             'username', 'email', 'first_name',
+#             'last_name', 'bio', 'role')
+#
+#
+# class NotAdminSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = User
+#         fields = (
+#             'username', 'email', 'first_name',
+#             'last_name', 'bio', 'role')
+#         read_only_fields = ('role',)
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            'username', 'email', 'first_name',
-            'last_name', 'bio', 'role')
+            'username', 'email', 'first_name', 'last_name', 'bio', 'role',
+        )
 
+    def update(self, obj, validated_data):
+        request = self.context.get('request')
+        user = request.user
 
-class NotAdminSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = (
-            'username', 'email', 'first_name',
-            'last_name', 'bio', 'role')
-        read_only_fields = ('role',)
+        is_admin = user.role == 'admin'
+        if not user.is_superuser or not is_admin:
+            validated_data.pop('role', None)
+
+        return super().update(obj, validated_data)
 
 
 class GetTokenSerializer(serializers.ModelSerializer):
