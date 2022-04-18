@@ -92,7 +92,7 @@ class APISignup(APIView):
         user = serializer.save()
         email_body = (
             f'Привет, {user.username}.\n'
-            f'Ваш код подтверждения для доступа к API: {user.confirmation_code}'
+            f'Код подтверждения для доступа к API: {user.confirmation_code}'
         )
         data = {
             'email_body': email_body,
