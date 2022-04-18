@@ -7,22 +7,6 @@ from reviews.models import Category, Comment, Genre, Review, Title, User
 from reviews.validators import year_validator
 
 
-# class UserSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = User
-#         fields = (
-#             'username', 'email', 'first_name',
-#             'last_name', 'bio', 'role')
-#
-#
-# class NotAdminSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = User
-#         fields = (
-#             'username', 'email', 'first_name',
-#             'last_name', 'bio', 'role')
-#         read_only_fields = ('role',)
-
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
