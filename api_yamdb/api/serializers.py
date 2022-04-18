@@ -4,6 +4,7 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
 from reviews.models import Category, Comment, Genre, Review, Title, User
+from reviews.validators import year_validator
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -79,13 +80,7 @@ class TitleSerializer(serializers.ModelSerializer):
     category = serializers.SlugRelatedField(
         slug_field='slug', queryset=Category.objects.all()
     )
-
-    def validate_year(self, value):
-        current_year = timezone.now().year
-        if value > current_year:
-            raise serializers.ValidationError(
-                'Нельзя добавлять произведения, которые еще не вышли!'
-            )
+    year = serializers.IntegerField(validators=[year_validator])
 
     class Meta:
         model = Title
