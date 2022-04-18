@@ -143,11 +143,6 @@ class Title(models.Model):
         validators=[year_validator],
         verbose_name='Год выпуска произведения'
     )
-    rating = models.IntegerField(
-        verbose_name='Рейтинг',
-        default=None,
-        null=True,
-    )
     description = models.CharField(
         max_length=512,
         verbose_name='Описание произведения',
@@ -196,8 +191,8 @@ class Review(models.Model):
     score = models.IntegerField(
         'оценка',
         validators=(
-            MinValueValidator(1),
-            MaxValueValidator(10)
+            MinValueValidator(1, message='Минимальная оценка равна 1'),
+            MaxValueValidator(10, message='Максимальная оценка равна 10')
         ),
         error_messages={'validators': 'Оценка должна быть от 1 до 10.'}
     )

@@ -1,5 +1,7 @@
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 
 from reviews.models import Category, Comment, Genre, Review, Title, User
 
@@ -33,6 +35,18 @@ class GetTokenSerializer(serializers.ModelSerializer):
 
 
 class SignUpSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(
+        validators=[UniqueValidator(queryset=User.objects.all())]
+    )
+    email = serializers.EmailField(
+        validators=[UniqueValidator(queryset=User.objects.all())]
+    )
+
+    def validate_username(self, value):
+        if value.lower() == 'me':
+            raise serializers.ValidationError('Имя "me" зарезервировано')
+        return value
+
     class Meta:
         model = User
         fields = ('email', 'username')
@@ -40,7 +54,7 @@ class SignUpSerializer(serializers.ModelSerializer):
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
-        fields = ('name', 'slug',)
+        exclude = ('id',)
         model = Category
         lookup_field = 'slug'
         extra_kwargs = {
@@ -50,7 +64,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
 class GenreSerializer(serializers.ModelSerializer):
     class Meta:
-        fields = ('name', 'slug',)
+        exclude = ('id',)
         model = Genre
         lookup_field = 'slug'
         extra_kwargs = {
@@ -65,6 +79,13 @@ class TitleSerializer(serializers.ModelSerializer):
     category = serializers.SlugRelatedField(
         slug_field='slug', queryset=Category.objects.all()
     )
+
+    def validate_year(self, value):
+        current_year = timezone.now().year
+        if value > current_year:
+            raise serializers.ValidationError(
+                'Нельзя добавлять произведения, которые еще не вышли!'
+            )
 
     class Meta:
         model = Title

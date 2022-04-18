@@ -5,7 +5,6 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -25,7 +24,7 @@ from .serializers import (CategorySerializer, CommentSerializer,
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = (IsAuthenticated, AdminOnly,)
+    permission_classes = (permissions.IsAuthenticated, AdminOnly,)
     lookup_field = 'username'
     filter_backends = (SearchFilter,)
     search_fields = ('username',)
@@ -33,7 +32,7 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(
         methods=['GET', 'PATCH'],
         detail=False,
-        permission_classes=(IsAuthenticated,),
+        permission_classes=(permissions.IsAuthenticated,),
         url_path='me')
     def get_current_user_info(self, request):
         serializer = UserSerializer(request.user)
