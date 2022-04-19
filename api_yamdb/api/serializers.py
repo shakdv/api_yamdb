@@ -2,7 +2,8 @@ from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
-from reviews.models import Category, Comment, Genre, Review, Title, User
+from reviews.models import (Category, Comment, Genre,
+                            Review, Title, User, ADMIN)
 from reviews.validators import year_validator
 
 
@@ -17,7 +18,7 @@ class UserSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         user = request.user
 
-        is_admin = user.role == 'admin'
+        is_admin = user.role == ADMIN
         if not user.is_superuser or not is_admin:
             validated_data.pop('role', None)
 
